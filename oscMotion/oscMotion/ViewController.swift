@@ -55,6 +55,62 @@ class ViewController: UIViewController {
     @IBOutlet weak var rateLabel: UILabel!
     @IBOutlet weak var rateSlider: UISlider!
     
+    // MARK: UIViewController
+    
+    override func viewDidLoad()
+    {
+        super.viewDidLoad()
+        
+        self.ipTextField.text = UserDefaults.standard.string(forKey:"ip");
+        self.portTextField.text = String(UserDefaults.standard.integer(forKey:"port"));
+        
+        startDeviceMotion();
+        let gesture = UITapGestureRecognizer(target: self, action: #selector(onTapGesture(_:)))
+        gesture.numberOfTapsRequired = 1
+        view.addGestureRecognizer(gesture)
+        
+        UIApplication.shared.applicationSupportsShakeToEdit = false
+        
+        rateLabel.isHidden = isStudy1;
+        rateSlider.isHidden = isStudy1;
+        rateValLabel.isHidden = isStudy1;
+        attSwitch.isHidden = isStudy1;
+        attLabel.isHidden = isStudy1;
+        attDescriptionLabel.isHidden = isStudy1;
+        accSwitch.isEnabled = !isStudy1;
+        gyroSwitch.isEnabled = !isStudy1;
+        accSwitch.isOn = true;
+        gyroSwitch.isOn = true;
+        
+    }
+
+    override func viewDidLayoutSubviews()
+    {
+        roundAndShadowButton(button: gettingStartedButton)
+        roundAndShadowButton(button: troubleShootingButton)
+        roundAndShadowButton(button: reconnectButton)
+        
+        messageSendIcon.layer.cornerRadius = messageSendIcon.frame.size.width / 2.0;
+        messageSendIcon.layer.masksToBounds = false
+        messageSendIcon.clipsToBounds = false
+        
+        let screenSize = UIScreen.main.bounds
+        let screenHeight = screenSize.height
+        
+        if screenHeight <= minHeightForTroubleShotting
+        {
+            troubleShootingButton.isHidden = true;
+            gettingStartedButton.isHidden = true;
+        }
+        
+        if screenHeight <= minHeightForRecordButton
+        {
+            recordButton.isHidden = true;
+        }
+    }
+    
+    // MARK: IBActions
+    
     @IBAction func rateSliderChanged(_ sender: UISlider)
     {
         sender.setValue(sender.value.rounded(), animated: false)
@@ -84,26 +140,6 @@ class ViewController: UIViewController {
         }
     }
     
-    @IBAction func sendSwitchChanged(_ sender: Any)
-    {
-        
-    }
-    
-    @IBAction func accSwitchChanged(_ sender: Any)
-    {
-        
-    }
-    
-    @IBAction func attSwitchChanged(_ sender: Any)
-    {
-        
-    }
-    
-    @IBAction func gyroSwitchChanged(_ sender: Any)
-    {
-        
-    }
-    
     @IBAction func reconnectButtonPressed(_ sender: Any)
     {
         reconnectButton.setTitle("Reconnect", for: UIControlState.normal)
@@ -119,78 +155,14 @@ class ViewController: UIViewController {
             self.client = OSCClient(address:ip, port:port)
         }
     }
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        self.ipTextField.text = UserDefaults.standard.string(forKey:"ip");
-        self.portTextField.text = String(UserDefaults.standard.integer(forKey:"port"));
-        // Do any additional setup after loading the view, typically from a nib.
-        startDeviceMotion();
-        let gesture = UITapGestureRecognizer(target: self, action: #selector(onTapGesture(_:)))
-        gesture.numberOfTapsRequired = 1
-        view.addGestureRecognizer(gesture)
-        
-        UIApplication.shared.applicationSupportsShakeToEdit = false
-        
-        rateLabel.isHidden = isStudy1;
-        rateSlider.isHidden = isStudy1;
-        rateValLabel.isHidden = isStudy1;
-        attSwitch.isHidden = isStudy1;
-        attLabel.isHidden = isStudy1;
-        attDescriptionLabel.isHidden = isStudy1;
-        accSwitch.isEnabled = !isStudy1;
-        gyroSwitch.isEnabled = !isStudy1;
-        accSwitch.isOn = true;
-        gyroSwitch.isOn = true;
-        
-    }
     
-    func roundAndShadowButton(button:UIButton)
-    {
-        let shadowPath = UIBezierPath.init(rect: button.bounds)
-        button.layer.cornerRadius = 10
-        button.layer.masksToBounds = false
-        button.layer.shadowColor = UIColor.lightGray.cgColor
-        button.layer.shadowOffset = CGSize.init(width: 1.0, height: 1.0)
-        button.layer.shadowOpacity = 0.5
-        button.layer.shadowPath = shadowPath.cgPath
-        button.layer.shadowRadius = 10.0
-    }
-    
-    override func viewDidLayoutSubviews() {
-        
-        roundAndShadowButton(button: gettingStartedButton)
-        roundAndShadowButton(button: troubleShootingButton)
-        roundAndShadowButton(button: reconnectButton)
-        
-        messageSendIcon.layer.cornerRadius = messageSendIcon.frame.size.width / 2.0;
-        messageSendIcon.layer.masksToBounds = false
-        messageSendIcon.clipsToBounds = false
-        
-        let screenSize = UIScreen.main.bounds
-        let screenHeight = screenSize.height
-        
-        if screenHeight <= minHeightForTroubleShotting
-        {
-            troubleShootingButton.isHidden = true;
-            gettingStartedButton.isHidden = true;
-        }
-        
-        if screenHeight <= minHeightForRecordButton
-        {
-            recordButton.isHidden = true;
-        }
-    }
-
     @objc func onTapGesture(_ gesture:UITapGestureRecognizer)
     {
         print("Tapped!!")
         view.endEditing(true)
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
+    
+    // MARK: Sending Data
     
     func startSendingTestData(limit:Double)
     {
@@ -211,7 +183,7 @@ class ViewController: UIViewController {
                 self.increment = self.increment.advanced(by: 1.0);
                 self.decrement = self.decrement.advanced(by: -1.0);
         })
-        // Add the timer to the current run loop.
+        
         RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
     }
     
@@ -222,29 +194,22 @@ class ViewController: UIViewController {
     
     func startTimer()
     {
-        // Configure a timer to fetch the motion data.
         self.timer = Timer.scheduledTimer(withTimeInterval: (1.0 / sendPS), repeats: true,
               block: { (timer) in
                 if let atData = self.motion.deviceMotion {
-                    // Get the attitude relative to the magnetic north reference frame.
                     self.atX = atData.attitude.pitch
                     self.atY = atData.attitude.roll
                     self.atZ = atData.attitude.yaw
-                    //print ("attitude = ", self.atX, self.atY, self.atZ);
                 }
                 if let accData = self.motion.deviceMotion {
-                    // Get the attitude relative to the magnetic north reference frame.
                     self.aX = accData.userAcceleration.x
                     self.aY = accData.userAcceleration.y
                     self.aZ = accData.userAcceleration.z
-                    //print ("acc = ", self.aX, self.aY, self.aZ);
                 }
                 if let accData = self.motion.deviceMotion {
-                    // Get the attitude relative to the magnetic north reference frame.
                     self.gX = accData.rotationRate.x
                     self.gY = accData.rotationRate.y
                     self.gZ = accData.rotationRate.z
-                    //print ("gyro = ", self.gX, self.gY, self.gZ);
                 }
                 if !self.sendSwitch.isOn
                 {
@@ -253,18 +218,22 @@ class ViewController: UIViewController {
                 
                 let message = OSCMessage(
                     OSCAddressPattern(self.wekaAddr));
+                
                 if self.accSwitch.isOn
                 {
                     message.add(self.aX,self.aY,self.aZ);
                 }
+                
                 if self.gyroSwitch.isOn
                 {
                     message.add(self.gX,self.gY,self.gZ);
                 }
+                
                 if self.attSwitch.isOn
                 {
                     message.add(self.atX,self.atY,self.atZ);
                 }
+                
                 if let cl = self.client
                 {
                     cl.send(message);
@@ -291,6 +260,18 @@ class ViewController: UIViewController {
             startTimer();
         }
     }
-
+    
+    //MARK: Helper functions
+    
+    func roundAndShadowButton(button:UIButton)
+    {
+        let shadowPath = UIBezierPath.init(rect: button.bounds)
+        button.layer.cornerRadius = 10
+        button.layer.masksToBounds = false
+        button.layer.shadowColor = UIColor.lightGray.cgColor
+        button.layer.shadowOffset = CGSize.init(width: 1.0, height: 1.0)
+        button.layer.shadowOpacity = 0.5
+        button.layer.shadowPath = shadowPath.cgPath
+        button.layer.shadowRadius = 10.0
+    }
 }
-
